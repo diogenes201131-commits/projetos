@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ordem de Serviço</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 { text-align: center; margin-bottom: 25px; }
+    .section { margin-bottom: 30px; }
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    label { font-size: 14px; margin-bottom: 5px; display: block; }
+    input, select {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #ccc; font-size: 14px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    table th { background: #f0f2f5; }
+    .btn {
+      padding: 8px 14px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 14px;
+    }
+    .btn-add { background: #2d89ef; color: #fff; margin-top: 10px; }
+    .btn-remove { background: #e74c3c; color: #fff; }
+    .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Ordem de Serviço</h1>
+
+  <div class="section">
+    <h2>Informações Gerais</h2>
+    <div class="form-grid">
+      <div>
+        <label>Data</label>
+        <input type="date" id="data" />
+      </div>
+      <div>
+        <label>Viatura</label>
+        <select id="viatura">
+          <option value="">Selecione</option>
+          <option>Viatura 01</option>
+          <option>Viatura 02</option>
+          <option>Viatura 03</option>
+        </select>
+      </div>
+      <div>
+        <label>Oficina</label>
+        <input type="text" id="oficina" />
+      </div>
+      <div>
+        <label>Militar Responsável</label>
+        <input type="text" id="militar" />
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Peças e Valores</h2>
+    <table id="tabelaPecas">
+      <thead>
+        <tr>
+          <th>Peça</th>
+          <th>Quantidade</th>
+          <th>Valor Unitário (R$)</th>
+          <th>Subtotal (R$)</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn btn-add" onclick="adicionarLinha()">+ Adicionar Peça</button>
+  </div>
+
+  <button class="btn btn-add" onclick="salvarOS()">Salvar Ordem de Serviço</button>
+
+  <div class="total">Total: R$ <span id="total">0,00</span></div>
+
+  <div class="section">
+    <h2>Ordens de Serviço Salvas</h2>
+    <table id="listaOS">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Militar</th>
+          <th>Viatura</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  const SUPABASE_URL = 'https://euohwncjjpgynpurswrf.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_U6Vrin6pi1ExHOJ-z_DUjg__QiuTStS'
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  )
+</script>
+
+<script>
+  document.getElementById('data').valueAsDate = new Date();
+
+  function adicionarLinha() {
+    const tbody = document.querySelector('#tabelaPecas tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text"></td>
+      <td><input type="number" min="1" value="1" onchange="calcular()"></td>
+      <td><input type="number" step="0.01" value="0" onchange="calcular()"></td>
+      <td class="subtotal">0.00</td>
+      <td><button class="btn btn-remove" onclick="this.closest('tr').remove();calcular();">X</button></td>
+    `;
+    tbody.appendChild(tr);
+    calcular();
+  }
+
+  
+
+  function calcular() {
+    let total = 0;
+    document.querySelectorAll('#tabelaPecas tbody tr').forEach(tr => {
+      const qtd = Number(tr.children[1].querySelector('input').value) || 0;
+      const val = Number(tr.children[2].querySelector('input').value) || 0;
+      const sub = qtd * val;
+      tr.querySelector('.subtotal').innerText = sub.toFixed(2);
+      total += sub;
+    });
+    document.getElementById('total').innerText = total.toFixed(2);
+  }
+
+ async function salvarOS() {
+
+  const { data: os, error } = await supabaseClient
+    .from('ordens_servico')
+    .insert({
+      data: data.value,
+      viatura: viatura.value,
+      oficina: oficina.value,
+      militar: militar.value,
+      total: Number(document.getElementById('total').innerText)
+    })
+    .select()
+    .single();
+
+  if (error) {
+    alert('Erro ao salvar OS');
+    console.error(error);
+    return;
+  }
+
+  const pecas = [];
+  document.querySelectorAll('#tabelaPecas tbody tr').forEach(tr => {
+    pecas.push({
+      os_id: os.id,
+      peca: tr.children[0].querySelector('input').value,
+      quantidade: Number(tr.children[1].querySelector('input').value),
+      valor: Number(tr.children[2].querySelector('input').value),
+      subtotal: Number(tr.querySelector('.subtotal').innerText)
+    });
+  });
+
+  const { error: erroPecas } = await supabaseClient
+    .from('pecas_os')
+    .insert(pecas);
+
+  if (erroPecas) {
+    alert(error.message)
+    console.error(erroPecas);
+    return;
+  }
+
+  alert('Ordem de Serviço salva no Supabase com sucesso!');
+}
+
+async function carregarOrdens() {
+  const { data, error } = await supabaseClient
+    .from('ordens_servico')
+    .select(`
+      id,
+      data,
+      viatura,
+      militar,
+      total
+    `)
+    .order('data', { ascending: false })
+
+  if (error) {
+    console.error(error)
+    alert('Erro ao carregar ordens')
+    return
+  }
+
+  const tbody = document.querySelector('#listaOS tbody')
+  tbody.innerHTML = ''
+
+  data.forEach(os => {
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <td>${os.data}</td>
+      <td>${os.militar}</td>
+      <td>${os.viatura}</td>
+      <td>
+        <button class="btn btn-add" onclick="baixarPDF('${os.id}')">
+          Baixar PDF
+        </button>
+      </td>
+    `
+    tbody.appendChild(tr)
+  })
+}
+ 
+
+
+async function baixarPDF(osId) {
+  const { data: os, error } = await supabaseClient
+    .from('ordens_servico')
+    .select(`
+      id, data, viatura, oficina, militar, total,
+      pecas_os (peca, quantidade, valor, subtotal)
+    `)
+    .eq('id', osId)
+    .single();
+
+  if (error) {
+    console.error(error);
+    alert('Erro ao gerar PDF');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = 15;
+
+  const dataFormatada = new Date(os.data).toLocaleDateString('pt-BR');
+
+  doc.setFontSize(14);
+  doc.text('ORDEM DE SERVIÇO', 10, y);
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.text(`Data: ${dataFormatada}`, 10, y); y += 6;
+  doc.text(`Viatura: ${os.viatura}`, 10, y); y += 6;
+  doc.text(`Oficina: ${os.oficina}`, 10, y); y += 6;
+  doc.text(`Militar: ${os.militar}`, 10, y); y += 10;
+
+  doc.text('Peças:', 10, y);
+  y += 6;
+
+  if (os.pecas_os && os.pecas_os.length > 0) {
+    os.pecas_os.forEach(p => {
+      doc.text(
+        `- ${p.peca} | Qtd: ${p.quantidade} | R$ ${p.valor} | Sub: ${p.subtotal}`,
+        10,
+        y
+      );
+      y += 6;
+    });
+  } else {
+    doc.text('Nenhuma peça cadastrada.', 10, y);
+    y += 6;
+  }
+
+  y += 6;
+  doc.setFontSize(12);
+  doc.text(`TOTAL: R$ ${os.total}`, 10, y);
+
+  doc.save(`OS_${os.id}.pdf`);
+}
+  carregarOrdens();         
+</script>
+<script>
+
+</script>
+</body>
+</html>
