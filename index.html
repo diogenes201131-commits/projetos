@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <link rel="manifest" href="manifest.json">
+
+  <meta charset="UTF-8" />
+  <title>Ordem de Serviço</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    label {
+      font-size: 14px;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    table th {
+      background: #f0f2f5;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-add {
+      background: #2d89ef;
+      color: #fff;
+      margin-top: 10px;
+    }
+
+    .btn-remove {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    .total {
+      text-align: right;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Ordem de Serviço</h1>
+
+    <div class="section">
+      <h2>Informações Gerais</h2>
+      <div class="form-grid">
+        <div>
+          <label>Data</label>
+          <input type="date" id="data" required />
+        </div>
+        <div>
+          <label>Viatura</label>
+          <select id="viatura" required>
+            <option value="">Selecione</option>
+
+            <option>ABTS-21</option>
+            <option>ASA-127</option>
+            <option>ASA-67</option>
+            <option>ASV-44</option>
+            <option>UR-335</option>
+            <option>UR-353</option>
+            <option>UR-196</option>
+            <option>AV-418</option>
+            <option>AV-415</option>
+          </select>
+        </div>
+        <div>
+          <label>Oficina</label>
+          <input type="text" id="oficina" required />
+        </div>
+        <div>
+          <label>Militar Responsável</label>
+          <select id="militar">
+            <option value="">Selecione</option>
+            <option>NAVES</option>
+            <option>RODRIGO</option>
+            <option>MENDES</option>
+            <option>RICARDO</option>
+            <option>SALES</option>
+            <option>NASCIMENTO</option>
+            <option>GLAUBER</option>
+            <option>IVAN</option>
+            <option>COSTA</option>
+            <option>BONIFÁCIO</option>
+            <option>BERNARDINO</option>
+            <option>FREITAS</option>
+            <option>HENRIQUE MACHADO</option>
+            <option>BRUNO</option>
+            <option>SHARA</option>
+            <option>BARRETO</option>
+            <option>NATHALIA OLIVEIRA</option>
+            <option>GEOVANE</option>
+          </select>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="section">
+      <h2>Peças e Valores</h2>
+      <table id="tabelaPecas">
+        <thead>
+          <tr>
+            <th>Peça</th>
+            <th>Quantidade</th>
+            <th>Valor Unitário (R$)</th>
+            <th>Subtotal (R$)</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn btn-add" onclick="adicionarLinha()">+ Adicionar Peça</button>
+    </div>
+
+    <button class="btn btn-add" onclick="salvarOS()">Salvar Ordem de Serviço</button>
+
+    <div class="total">Total: R$ <span id="total">0,00</span></div>
+
+    <div class="section">
+
+      <h2>Ordens de Serviço Salvas</h2>
+      <button class="btn btn-add" onclick="exportarExcel()">
+        Exportar para Excel
+      </button>
+
+      <button class="btn btn-add" onclick="exportarBackup()">
+        Exportar Backup
+      </button>
+
+      <input type="file" id="importBackup" accept=".json" style="display:none"
+        onchange="importarBackupArquivo(event)" />
+
+      <button class="btn btn-remove" onclick="document.getElementById('importBackup').click()">
+        Importar Backup
+      </button>
+
+      <div class="section">
+        <h2>Dashboard</h2>
+
+        <div class="form-grid">
+          <div>
+            <label>Militar</label>
+            <input type="text" id="filtroMilitar" placeholder="Nome do militar">
+          </div>
+          <div>
+            <label>Viatura</label>
+            <input type="text" id="filtroViatura" placeholder="Ex: Viatura 01">
+          </div>
+          <div>
+            <label>Data inicial</label>
+            <input type="date" id="filtroDataInicio">
+          </div>
+
+          <div>
+            <label>Data final</label>
+            <input type="date" id="filtroDataFim">
+          </div>
+        </div>
+
+        <button class="btn btn-add" onclick="aplicarFiltros()">
+          Aplicar Filtros
+        </button>
+
+        <table id="listaOS">
+          <thead>
+            <tr>
+              <th>Nº OS</th>
+              <th>Data</th>
+              <th>Militar</th>
+              <th>Viatura</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="paginacao" style="margin-top:15px; text-align:center;"></div>
+      </div>
+    </div>
+
+
+    <div class="form-grid" style="margin-top:15px">
+      <div><strong>Total de OS:</strong> <span id="dashQtd">0</span></div>
+      <div><strong>Total gasto:</strong> R$ <span id="dashTotal">0,00</span></div>
+    </div>
+    <div class="section">
+      <h2>Resumo do Filtro</h2>
+
+      <canvas id="graficoResumo" height="120"></canvas>
+
+      <button class="btn btn-add" onclick="exportarGraficoExcel()">
+        Exportar dados do gráfico
+      </button>
+    </div>
+
+  </div>
+
+  <button class="btn btn-remove" onclick="apagarBancoDados()">
+    Apagar banco de testes
+  </button>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script src="db.js"></script>
+
+  <script>
+
+    let paginaAtual = 1;
+    const itensPorPagina = 10;
+    let todasOrdensGlobais = [];
+    let ordensFiltradasGlobais = [];
+    let grafico;
+    let dadosGrafico = [];
+    const hoje = dataHojeLocal();
+    document.getElementById('data').value = hoje;
+    document.getElementById('data').max = hoje;
+
+    function apagarBancoDados() {
+      if (!confirm('ATENÇÃO: Isso apagará TODAS as Ordens de Serviço. Deseja continuar?')) {
+        return;
+      }
+
+
+      const tx = db.transaction('ordens', 'readwrite');
+      const store = tx.objectStore('ordens');
+      store.clear();
+
+      tx.oncomplete = () => {
+        alert('Banco de dados apagado com sucesso.');
+        carregarOrdens();
+      };
+
+      tx.onerror = () => {
+        alert('Erro ao apagar o banco.');
+      };
+    }
+
+    function paginaAnterior() {
+      if (paginaAtual > 1) {
+        paginaAtual--;
+        atualizarListaAtual();
+      }
+    }
+
+    function proximaPagina() {
+      const total = listaAtual().length;
+      const totalPaginas = Math.ceil(total / itensPorPagina);
+
+      if (paginaAtual < totalPaginas) {
+        paginaAtual++;
+        atualizarListaAtual();
+      }
+    }
+
+    function dataHojeLocal() {
+      const hoje = new Date();
+      const ano = hoje.getFullYear();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    function adicionarLinha() {
+      const tbody = document.querySelector('#tabelaPecas tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+      <td><input type="text"></td>
+      <td><input type="number" min="1" value="1" onchange="calcular()"></td>
+      <td><input type="number" step="0.01" value="0" onchange="calcular()"></td>
+      <td class="subtotal">0.00</td>
+      <td><button class="btn btn-remove" onclick="this.closest('tr').remove();calcular();">X</button></td>
+    `;
+      tbody.appendChild(tr);
+      calcular();
+    }
+
+    function calcular() {
+      let total = 0;
+      document.querySelectorAll('#tabelaPecas tbody tr').forEach(tr => {
+        const qtd = Number(tr.children[1].querySelector('input').value) || 0;
+        const val = Number(tr.children[2].querySelector('input').value) || 0;
+        const sub = qtd * val;
+        tr.querySelector('.subtotal').innerText = sub.toFixed(2);
+        total += sub;
+      });
+      document.getElementById('total').innerText = total.toFixed(2);
+    }
+    
+    function gerarNumeroOS() {
+      return new Promise((resolve) => {
+        const tx = db.transaction('ordens', 'readonly');
+        const store = tx.objectStore('ordens');
+
+        const req = store.openCursor(null, 'prev'); // pega o último registro
+
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const ultimoNumero = cursor.value.numero || 0;
+            resolve(ultimoNumero + 1);
+          } else {
+            resolve(1); // primeira OS
+          }
+        };
+      });
+    }
+    
+    function paginar(lista) {
+      const inicio = (paginaAtual - 1) * itensPorPagina;
+      const fim = inicio + itensPorPagina;
+      return lista.slice(inicio, fim);
+    }
+    
+    function atualizarBotoesPaginacao(totalItens) {
+      const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+      document.getElementById('paginaInfo').innerText =
+        `Página ${paginaAtual} de ${totalPaginas}`;
+    }
+
+    async function salvarOS() {
+      const hoje = dataHojeLocal();
+      if (
+        !data.value ||
+        !viatura.value ||
+        !oficina.value.trim() ||
+        !militar.value
+      ) {
+        alert('Preencha TODOS os campos da Ordem de Serviço.');
+        return;
+      }
+
+      if (document.querySelectorAll('#tabelaPecas tbody tr').length === 0) {
+        alert('Adicione pelo menos uma peça.');
+        return;
+      }// 🔒 Validação das peças
+      const linhas = document.querySelectorAll('#tabelaPecas tbody tr');
+
+      if (linhas.length === 0) {
+        alert('Adicione pelo menos uma peça.');
+        return;
+      }
+
+      let erro = false;
+
+      linhas.forEach((tr, index) => {
+        const nome = tr.children[0].querySelector('input').value.trim();
+        const qtd = Number(tr.children[1].querySelector('input').value);
+        const val = Number(tr.children[2].querySelector('input').value);
+
+        if (!nome || qtd <= 0 || val <= 0) {
+          alert(`Erro na peça da linha ${index + 1}.
+Preencha nome, quantidade maior que zero e valor maior que zero.`);
+          erro = true;
+        }
+      });
+
+      if (erro) return;
+
+      if (data.value > hoje) {
+        alert('Não é permitido salvar Ordem de Serviço com data futura.');
+        return;
+      }
+
+      const numeroOS = await gerarNumeroOS();
+
+      const pecas = [];
+
+      document.querySelectorAll('#tabelaPecas tbody tr').forEach(tr => {
+        pecas.push({
+          peca: tr.children[0].querySelector('input').value,
+          quantidade: Number(tr.children[1].querySelector('input').value),
+          valor: Number(tr.children[2].querySelector('input').value),
+          subtotal: Number(tr.querySelector('.subtotal').innerText)
+        });
+      });
+
+      const os = {
+        numero: numeroOS,
+        data: data.value,
+        viatura: viatura.value,
+        oficina: oficina.value,
+        militar: militar.value,
+        total: Number(document.getElementById('total').innerText),
+        pecas
+      };
+
+      const tx = db.transaction('ordens', 'readwrite');
+      tx.objectStore('ordens').add(os);
+
+      tx.oncomplete = () => {
+        alert(`Ordem de Serviço OS-${String(numeroOS).padStart(6, '0')} salva com sucesso!`);
+        carregarOrdens();
+        limparFormulario(); // já limpa
+      };
+    }
+
+    function limparFormulario() {
+      // Campos principais
+      document.getElementById('data').value =
+        new Date().toISOString().split('T')[0];
+
+      document.getElementById('viatura').value = '';
+      document.getElementById('oficina').value = '';
+      document.getElementById('militar').value = '';
+
+      // Limpa tabela de peças
+      document.querySelector('#tabelaPecas tbody').innerHTML = '';
+
+      // Zera total
+      document.getElementById('total').innerText = '0.00';
+    }
+
+   function carregarOrdens() {
+  const tx = db.transaction('ordens', 'readonly');
+  const req = tx.objectStore('ordens').getAll();
+
+  req.onsuccess = () => {
+    atualizarDashboard(req.result);
+
+    // 🔹 guarda tudo globalmente
+    todasOrdensGlobais = req.result.reverse();
+
+    // 🔹 reinicia paginação
+    paginaAtual = 1;
+
+    // 🔹 renderiza SOMENTE via paginação
+    renderizarTabela(todasOrdensGlobais);
+  };
+}
+
+    function excluirOS(id) {
+      if (!confirm('Tem certeza que deseja excluir esta Ordem de Serviço?')) return;
+
+      const tx = db.transaction('ordens', 'readwrite');
+      const store = tx.objectStore('ordens');
+      store.delete(id);
+
+      tx.oncomplete = () => {
+        alert('Ordem de Serviço excluída.');
+        carregarOrdens();
+      };
+
+      tx.onerror = () => {
+        alert('Erro ao excluir a Ordem de Serviço.');
+      };
+    }
+
+    function baixarPDF(id) {
+      const tx = db.transaction('ordens', 'readonly');
+      const req = tx.objectStore('ordens').get(id);
+
+      req.onsuccess = () => {
+        const os = req.result;
+        if (!os) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        let y = 20;
+
+        doc.setFontSize(16);
+        doc.text('ORDEM DE SERVIÇO', 10, y);
+
+        y += 10;
+        doc.setFontSize(11);
+        doc.text(`Número: OS-${String(os.numero).padStart(6, '0')}`, 10, y);
+
+        y += 8;
+        doc.text(`Data: ${formatarDataBR(os.data)}`, 10, y);
+
+        y += 6;
+        doc.text(`Viatura: ${os.viatura}`, 10, y);
+
+        y += 6;
+        doc.text(`Oficina: ${os.oficina}`, 10, y);
+
+        y += 6;
+        doc.text(`Militar: ${os.militar}`, 10, y);
+
+        y += 10;
+        doc.text('Peças:', 10, y);
+
+        y += 6;
+
+        os.pecas.forEach(p => {
+          doc.text(
+            `- ${p.peca} | Qtd: ${p.quantidade} | R$ ${p.valor} | Sub: ${p.subtotal}`,
+            10,
+            y
+          );
+          y += 6;
+        });
+
+        y += 6;
+        doc.setFontSize(12);
+        doc.text(`TOTAL: R$ ${os.total}`, 10, y);
+
+        doc.save(`OS_${os.id}.pdf`);
+      };
+    }
+    
+    function exportarExcel() {
+      const tx = db.transaction('ordens', 'readonly');
+      const req = tx.objectStore('ordens').getAll();
+
+      req.onsuccess = () => {
+        const ordens = req.result;
+
+        if (!ordens.length) {
+          alert('Nenhuma Ordem de Serviço para exportar.');
+          return;
+        }
+
+        let csv =
+          'Numero OS;Data;Militar;Viatura;Oficina;Peça;Quantidade;Valor Unitario;Subtotal;Total OS\n';
+
+        ordens.forEach(os => {
+          const dataFormatada = formatarDataBR(os.data);
+
+          if (os.pecas && os.pecas.length > 0) {
+            os.pecas.forEach(p => {
+              csv += [
+                os.id,
+                dataFormatada,
+                os.militar || '',
+                os.viatura || '',
+                os.oficina || '',
+                p.peca || '',
+                p.quantidade || 0,
+                Number(p.valor).toFixed(2),
+                Number(p.subtotal).toFixed(2),
+                Number(os.total).toFixed(2)
+              ].join(';') + '\n';
+            });
+          } else {
+            // Caso raro: OS sem peças
+            csv += [
+              os.id,
+              dataFormatada,
+              os.militar || '',
+              os.viatura || '',
+              os.oficina || '',
+              '',
+              0,
+              '0.00',
+              '0.00',
+              Number(os.total).toFixed(2)
+            ].join(';') + '\n';
+          }
+        });
+
+        const blob = new Blob([csv], {
+          type: 'text/csv;charset=utf-8;'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = `ordens_servico_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      };
+
+      req.onerror = () => {
+        alert('Erro ao exportar para Excel.');
+      };
+    }
+    
+    function exportarBackup() {
+      const tx = db.transaction('ordens', 'readonly');
+      const req = tx.objectStore('ordens').getAll();
+
+      req.onsuccess = () => {
+        const backup = {
+          versao: 1,
+          dataExportacao: new Date().toISOString(),
+          ordens: req.result
+        };
+
+        const blob = new Blob(
+          [JSON.stringify(backup, null, 2)],
+          { type: 'application/json' }
+        );
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = `backup_ordens_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      };
+    }
+    
+    function importarBackupArquivo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        try {
+          const backup = JSON.parse(reader.result);
+
+          if (!backup.ordens || !Array.isArray(backup.ordens)) {
+            alert('Arquivo de backup inválido.');
+            return;
+          }
+
+          const tx = db.transaction('ordens', 'readwrite');
+          const store = tx.objectStore('ordens');
+
+          store.clear();
+
+          backup.ordens.forEach(os => {
+            store.add(os);
+          });
+
+          tx.oncomplete = () => {
+            alert('Backup importado com sucesso!');
+            carregarOrdens();
+          };
+        } catch (e) {
+          alert('Erro ao ler arquivo de backup.');
+        }
+      };
+
+      reader.readAsText(file);
+    }
+    
+    function aplicarFiltros() {
+      const militarFiltro = document.getElementById('filtroMilitar').value.trim().toLowerCase();
+      const viaturaFiltro = document.getElementById('filtroViatura').value.trim().toLowerCase();
+      const dataInicio = document.getElementById('filtroDataInicio').value;
+      const dataFim = document.getElementById('filtroDataFim').value;
+
+      const tx = db.transaction('ordens', 'readonly');
+      const req = tx.objectStore('ordens').getAll();
+
+      req.onsuccess = () => {
+        let ordens = req.result;
+
+        ordens = ordens.filter(os => {
+
+          if (militarFiltro && !os.militar.toLowerCase().includes(militarFiltro)) {
+            return false;
+          }
+
+          if (viaturaFiltro && !os.viatura.toLowerCase().includes(viaturaFiltro)) {
+            return false;
+          }
+
+          const dataOS = new Date(os.data + 'T00:00:00');
+
+          if (dataInicio) {
+            const inicio = new Date(dataInicio + 'T00:00:00');
+            if (dataOS < inicio) return false;
+          }
+
+          if (dataFim) {
+            const fim = new Date(dataFim + 'T23:59:59');
+            if (dataOS > fim) return false;
+          }
+
+          return true;
+        });
+
+        // 🔥 Guarda resultado (mesmo se vier tudo)
+        ordensFiltradasGlobais = ordens;
+
+        atualizarDashboard(ordens);
+        renderizarTabela(ordens);
+        gerarGraficoResumo(ordens);
+      };
+    }
+
+    function atualizarDashboard(ordens) {
+      document.getElementById('dashQtd').innerText = ordens.length;
+
+      const total = ordens.reduce((soma, os) => soma + Number(os.total), 0);
+      document.getElementById('dashTotal').innerText = total.toFixed(2);
+    }
+        
+    function renderizarTabela(ordens) {
+     const tbody = document.querySelector('#listaOS tbody');
+  tbody.innerHTML = '';
+
+  const inicio = (paginaAtual - 1) * itensPorPagina;
+  const fim = inicio + itensPorPagina;
+
+  const paginaDados = ordens.slice(inicio, fim);
+
+  paginaDados.forEach(os => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>OS-${String(os.numero).padStart(6, '0')}</td>
+      <td>${formatarDataBR(os.data)}</td>
+      <td>${os.militar}</td>
+      <td>${os.viatura}</td>
+      <td>
+        <button onclick="baixarPDF(${os.id})">PDF</button>
+        <button onclick="excluirOS(${os.id})" style="color:red">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  renderizarPaginacao(ordens.length);
+}
+   
+    function renderizarPaginacao(totalItens) {
+  const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+  const div = document.getElementById('paginacao');
+
+  if (totalPaginas <= 1) {
+    div.innerHTML = '';
+    return;
+  }
+
+  div.innerHTML = `
+    <button ${paginaAtual === 1 ? 'disabled' : ''}
+      onclick="mudarPagina(${paginaAtual - 1})">
+      Anterior
+    </button>
+
+    <span style="margin:0 10px">
+      Página ${paginaAtual} de ${totalPaginas}
+    </span>
+
+    <button ${paginaAtual === totalPaginas ? 'disabled' : ''}
+      onclick="mudarPagina(${paginaAtual + 1})">
+      Próxima
+    </button>
+  `;
+}
+
+    function mudarPagina(novaPagina) {
+  paginaAtual = novaPagina;
+  renderizarTabela(todasOrdensGlobais);
+}
+
+    function gerarGraficoResumo(ordens) {
+      if (!ordens || ordens.length === 0) {
+        if (grafico) grafico.destroy();
+        dadosGrafico = [];
+        return;
+      }
+
+      const resumo = {};
+
+      ordens.forEach(os => {
+        const chave =
+          os.viatura ||
+          os.militar ||
+          formatarDataBR(os.data)
+
+        if (!resumo[chave]) resumo[chave] = 0;
+        resumo[chave] += Number(os.total);
+      });
+
+      const labels = Object.keys(resumo);
+      const valores = Object.values(resumo);
+
+      dadosGrafico = labels.map((l, i) => ({
+        label: l,
+        total: valores[i]
+      }));
+
+      const ctx = document.getElementById('graficoResumo');
+
+      if (grafico) grafico.destroy();
+
+      grafico = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Total (R$)',
+            data: valores
+          }]
+        }
+      });
+    }
+    
+    function exportarGraficoExcel() {
+      if (!ordensFiltradasGlobais.length) {
+        alert('Nenhum dado filtrado para exportar.');
+        return;
+      }
+
+      let csv =
+        'Numero OS;Data;Militar;Viatura;Oficina;Peça;Quantidade;Valor Unitario;Subtotal;Total OS\n';
+
+      ordensFiltradasGlobais.forEach(os => {
+        const dataFormatada = formatarDataBR(os.data);
+
+        if (os.pecas && os.pecas.length) {
+          os.pecas.forEach(p => {
+            csv += [
+              `OS-${String(os.numero).padStart(6, '0')}`,
+              dataFormatada,
+              os.militar || '',
+              os.viatura || '',
+              os.oficina || '',
+              p.peca || '',
+              p.quantidade || 0,
+              Number(p.valor).toFixed(2),
+              Number(p.subtotal).toFixed(2),
+              Number(os.total).toFixed(2)
+            ].join(';') + '\n';
+          });
+        } else {
+          // OS sem peças
+          csv += [
+            `OS-${String(os.numero).padStart(6, '0')}`,
+            dataFormatada,
+            os.militar || '',
+            os.viatura || '',
+            os.oficina || '',
+            '',
+            0,
+            '0.00',
+            '0.00',
+            Number(os.total).toFixed(2)
+          ].join(';') + '\n';
+        }
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_filtrado_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+    
+    function formatarDataBR(dataISO) {
+      const [ano, mes, dia] = dataISO.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+    
+    abrirBanco().then(() => {
+      carregarOrdens();
+    });
+   
+    /*if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker registrado'))
+        .catch(err => console.error('SW erro', err));
+    }
+*/
+  </script>
+
+</body>
+
+</html>
